@@ -24,7 +24,7 @@ function startGame() {
 
 // This function runs every 50 ms
 function gameTick() {
-    if (obstacles.length < 3) {
+    if (obstacles.length<3 && obstacles[0].obstacleY>300) {
         createObstacle();
     }
 
@@ -76,14 +76,25 @@ function moveCar(e) {
   }
 };
 
+// checks if an obstacle has passed 300
+// function obstacleClear(obstacle){
+//     return obstacle.obstacleY > 300;
+// }
+
+
 // create an obstacle
+
+
 function createObstacle(){
-  var obstacleLane = Math.floor(Math.random()*3);
-  var obstacleX = 20 + 300*obstacleLane;
-  let obstacleY = 20;
-  var newObstacle = {obstacleX: obstacleX, obstacleY: obstacleY};
-  obstacles.push(newObstacle);
-};
+    var obstacleLane = Math.floor(Math.random()*3);
+    var obstacleX = 20 + 300*obstacleLane;
+    let obstacleY = 20;
+    var newObstacle = {obstacleX: obstacleX, obstacleY: obstacleY};
+    obstacles.push(newObstacle);
+    // if (obstacles.every(obstacleClear)) {
+    //     obstacles.push(newObstacle)
+    // }
+}
 
 // game over - change game state, show game over and clear timer
 function gameOver() {
@@ -99,7 +110,7 @@ function gameOver() {
     
     //   start over button
     context.font = "30px Arial";
-    let restart = context.fillText("click to start again", 305, 320);
+    context.fillText("click to start again", 305, 320);
     board.addEventListener("click", startGame);
 
     clearInterval(timer);
