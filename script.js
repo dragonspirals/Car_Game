@@ -1,19 +1,62 @@
-// board
-var board = document.getElementById("board");
-var context = board.getContext("2d");
-var carLane = 1;
 
-
-document.addEventListener("keydown", moveCar);
-var obstacles = [];
+// gameState - gameplay or game over screen
 var gameState = "game";
 
-// start the game on window load
+/* -------------------------------------------------------------------------- */
+/*                       defining the board and objects                       */
+/* -------------------------------------------------------------------------- */
+
+
+/* ------------------------------ board layout ------------------------------ */
+
+var board = document.getElementById("board");
+var context = board.getContext("2d");
+board.height = window.innerHeight - 50;
+board.width = board.height;
+var laneWidth = (board.width/3)
+
+
+
+/* ----------------------------------- car ---------------------------------- */
+var car = {
+  // 3 car lanes - 0,1,2 - car starts in the middle
+  lane: 1,
+  widthX: laneWidth - 40,
+  heightY: 100,
+}
+
+
+/* -------------------------------- obstacles ------------------------------- */
+
+// stores a list of all the obstacles
+var obstacles = [];
+
+function createObstacle(){
+  var newObstacle = {}
+  newObstacle.lane = Math.floor(Math.random()*3);
+  newObstacle.xPos = 20 + laneWidth*newObstacle.lane;
+  newObstacle.yPos = 20;
+  newObstacle.widthX = laneWidth - 40;
+  newObstacle.heightY = 100;
+  obstacles.push(newObstacle);
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                     gameplay - functions, graphics, etc                    */
+/* -------------------------------------------------------------------------- */
+
+
+/* ---------------------- start the game on window load --------------------- */
 window.onload = function(){
   startGame();
 }
 
-// start/restart game - changes game state, resets obstacles, sets new game timer
+
+/* -------------------------- start/restart game ---------------------------- */
+
+// changes game state, resets obstacles, sets new game timer
 function startGame() {
     gameState = "game";
     obstacles = [];
@@ -22,25 +65,32 @@ function startGame() {
     window.timer = setInterval(gameTick, 50);
   }
 
-// This function runs every 50 ms
+
+/* --------------- game tick - this function runs every 50 ms --------------- */
 function gameTick() {
-    if (obstacles.length<3 && obstacles[0].obstacleY>300) {
+    if ((obstacles.length==0) || (obstacles.length<3 && obstacles[0].yPos>300)) {
         createObstacle();
     }
 
-    // for each obstacle
+    // for each obstacle - move obstacles down and delete once off the board
+    // removeObstacle is bool that checks if an obstacle needs to be removed
+    removeObstacle = false;
     for (let i=0; i<obstacles.length; i++) {
-        if (obstacles[i].obstacleY == board.height) {
-            obstacles.shift();
-        } else {
-            obstacles[i].obstacleY += 10;
-        }
+      if (obstacles[i].yPos >= board.height) {
+        removeObstacle = true;
+      } else {
+        obstacles[i].yPos += 10;
+      }
     }
+
+    if (removeObstacle == true) {obstacles.shift()}
     updateBoard();
     isCollision();
 }
 
-// update the board - resets the board and then draws elements
+
+/* ------------------------------ update board ------------------------------ */
+// resets the board and redraws each element
 function updateBoard() {
     if (gameState === "game"){
         
@@ -50,53 +100,40 @@ function updateBoard() {
 
     // lanes
         context.fillStyle = "grey";
-        context.fillRect(295, 0, 10, board.height);
-        context.fillRect(595, 0, 10, board.height);
+        context.fillRect(laneWidth - 5, 0, 10, board.height);
+        context.fillRect((2*laneWidth -5), 0, 10, board.height);
 
     //   car
         context.fillStyle = "white";
-        context.fillRect(20 + 300*(carLane), board.height - 120, 260, 100);
+        car.xPos = 20 + (laneWidth*car.lane);
+        car.yPos = board.height - car.heightY - 20;
+        context.fillRect(car.xPos, car.yPos, car.widthX, car.heightY);
 
     //   obstacles
         context.fillStyle = "red";
         for (let i=0; i < obstacles.length; i++) {
-            context.fillRect(obstacles[i].obstacleX, obstacles[i].obstacleY, 260, 100);
+            context.fillRect(obstacles[i].xPos, obstacles[i].yPos, 
+              obstacles[i].widthX, obstacles[i].heightY);
         }   
     }
 };
 
-// moving the car with arrow keys
+
+/* --------------------- moving the car with arrow keys --------------------- */
+document.addEventListener("keydown", moveCar);
 function moveCar(e) {
-  if ((e.code == "ArrowLeft") && (carLane > 0)) {
-    carLane-- ;
+  if ((e.code == "ArrowLeft") && (car.lane > 0)) {
+    car.lane-- ;
     updateBoard();
-  } else if ((e.code == "ArrowRight") && (carLane < 2)) {
-    carLane++ ;
+  } else if ((e.code == "ArrowRight") && (car.lane < 2)) {
+    car.lane++ ;
     updateBoard();
   }
 };
 
-// checks if an obstacle has passed 300
-// function obstacleClear(obstacle){
-//     return obstacle.obstacleY > 300;
-// }
 
-
-// create an obstacle
-
-
-function createObstacle(){
-    var obstacleLane = Math.floor(Math.random()*3);
-    var obstacleX = 20 + 300*obstacleLane;
-    let obstacleY = 20;
-    var newObstacle = {obstacleX: obstacleX, obstacleY: obstacleY};
-    obstacles.push(newObstacle);
-    // if (obstacles.every(obstacleClear)) {
-    //     obstacles.push(newObstacle)
-    // }
-}
-
-// game over - change game state, show game over and clear timer
+/* -------------------------------- game over ------------------------------- */
+// change gameState to gameOver and clear timer
 function gameOver() {
     obstacles.length = 0;
     gameState = "gameOver";
@@ -117,11 +154,13 @@ function gameOver() {
 }
 
 
-// collision detection - if collision detected - game over
+/* --------------------------- collision detection -------------------------- */
+// if collision detected - game over
 function isCollision() {
   for (let i = 0; i<obstacles.length;i++) {
-    if ((20 + 300*(carLane) === obstacles [i].obstacleX)
-        && (board.height - 220 < obstacles[i].obstacleY)) {
+    if ((car.xPos === obstacles[i].xPos)
+        && (car.yPos - obstacles[i].heightY < obstacles[i].yPos)
+        && (obstacles[i].yPos < board.height - 20)) {
       gameOver();
     }
   }
