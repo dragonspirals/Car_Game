@@ -18,11 +18,46 @@ var laneWidth = (board.width/3)
 
 
 /* ----------------------------------- car ---------------------------------- */
+const carImage = document.createElement("img");
+carImage.setAttribute("src", "assets\\car.png");
+
+
 var car = {
   // 3 car lanes - 0,1,2 - car starts in the middle
   lane: 1,
+  newLane:1,
   widthX: laneWidth - 40,
-  heightY: 100,
+  speed:20
+}
+car.heightY = car.widthX*(4/3);
+car.yPos = board.height - car.heightY;
+
+
+// determines car position
+function carPosition() {
+
+  // when car is switching lanes, car.newLane will be the lane it's moving towards
+
+  // if the car's lane is the same
+  if (car.lane == car.newLane) {
+    car.xPos = (20 + (laneWidth*car.lane));
+  } 
+
+  // if the car has reached it's new lane
+  else if (Math.abs(20 + (laneWidth*car.newLane) - car.xPos) < car.speed) {
+    car.lane = car.newLane;
+  }
+
+  // car move right
+  else if (car.newLane > car.lane) {
+    car.xPos += car.speed;
+  }
+
+  // car move left
+  else if (car.newLane < car.lane) {
+    car.xPos -= car.speed;
+  }
+
 }
 
 
@@ -51,6 +86,7 @@ function createObstacle(){
 /* ---------------------- start the game on window load --------------------- */
 window.onload = function(){
   startGame();
+  
 }
 
 
@@ -60,6 +96,8 @@ window.onload = function(){
 function startGame() {
     gameState = "game";
     obstacles = [];
+
+    car.xPos = 20 + (laneWidth*car.lane);
     createObstacle();
     updateBoard();
     window.timer = setInterval(gameTick, 50);
@@ -71,6 +109,9 @@ function gameTick() {
     if ((obstacles.length==0) || (obstacles.length<3 && obstacles[0].yPos>300)) {
         createObstacle();
     }
+
+
+    carPosition();
 
     // for each obstacle - move obstacles down and delete once off the board
     // removeObstacle is bool that checks if an obstacle needs to be removed
@@ -94,23 +135,20 @@ function gameTick() {
 function updateBoard() {
     if (gameState === "game"){
         
-    //   board - resets the board with a black rectangle
-        context.fillStyle = "black";
+    //   board - resets the board with a rectangle
+        context.fillStyle = "grey";
         context.fillRect(0, 0, board.width, board.height);
 
     // lanes
-        context.fillStyle = "grey";
+        context.fillStyle = "white";
         context.fillRect(laneWidth - 5, 0, 10, board.height);
         context.fillRect((2*laneWidth -5), 0, 10, board.height);
 
     //   car
-        context.fillStyle = "white";
-        car.xPos = 20 + (laneWidth*car.lane);
-        car.yPos = board.height - car.heightY - 20;
-        context.fillRect(car.xPos, car.yPos, car.widthX, car.heightY);
+        context.drawImage(carImage, car.xPos, car.yPos, car.widthX, car.heightY);
 
     //   obstacles
-        context.fillStyle = "red";
+        context.fillStyle = "pink";
         for (let i=0; i < obstacles.length; i++) {
             context.fillRect(obstacles[i].xPos, obstacles[i].yPos, 
               obstacles[i].widthX, obstacles[i].heightY);
@@ -123,13 +161,15 @@ function updateBoard() {
 document.addEventListener("keydown", moveCar);
 function moveCar(e) {
   if ((e.code == "ArrowLeft") && (car.lane > 0)) {
-    car.lane-- ;
+    car.newLane-- ;
     updateBoard();
   } else if ((e.code == "ArrowRight") && (car.lane < 2)) {
-    car.lane++ ;
+    car.newLane++ ;
     updateBoard();
   }
 };
+
+
 
 
 /* -------------------------------- game over ------------------------------- */
@@ -143,11 +183,11 @@ function gameOver() {
     // game over text
     context.fillStyle = "white";
     context.font = "50px Arial";
-    context.fillText("Game Over", 300, 250);
+    context.fillText("Game Over", board.width/2, board.height/2);
     
     //   start over button
     context.font = "30px Arial";
-    context.fillText("click to start again", 305, 320);
+    context.fillText("click to start again", board.width/2 , board.height/2 + 100);
     board.addEventListener("click", startGame);
 
     clearInterval(timer);
@@ -158,10 +198,19 @@ function gameOver() {
 // if collision detected - game over
 function isCollision() {
   for (let i = 0; i<obstacles.length;i++) {
-    if ((car.xPos === obstacles[i].xPos)
-        && (car.yPos - obstacles[i].heightY < obstacles[i].yPos)
-        && (obstacles[i].yPos < board.height - 20)) {
+
+    if ((car.yPos >= obstacles[i].yPos-car.heightY )
+    && (car.yPos <= obstacles[i].yPos+obstacles[i].heightY)
+    && (car.xPos >= obstacles[i].xPos-car.widthX )
+    && (car.xPos <= obstacles[i].xPos+obstacles[i].widthX)) {
       gameOver();
     }
+
+
+    // if ((car.xPos === obstacles[i].xPos)
+    //     && (car.yPos - obstacles[i].heightY < obstacles[i].yPos)
+    //     && (obstacles[i].yPos < board.height - 20)) {
+    //   gameOver();
+    
   }
 }
